@@ -42,7 +42,8 @@ func handler(w http.ResponseWriter, r *http.Request) {
 			resp := servicelist()
 			fmt.Fprintf(w, resp)
 		} else if stringInSlice("inspect", urlpath) {
-			serviceinspect(urlpath[2])
+			resp := serviceinspect(urlpath[2])
+			fmt.Fprintf(w, resp)
 		}
 	} else {
 		http.Error(w, "Not a valid command call", http.StatusBadRequest)
@@ -71,7 +72,7 @@ func servicelist() (response string) {
 	return string(b)
 }
 
-func serviceinspect(servicename string) {
+func serviceinspect(servicename string) (response string) {
 	srvlist, err := cli.ServiceList(ctx, types.ServiceListOptions{})
 	if err != nil {
 		fmt.Print("Not a stack manager error")
@@ -81,6 +82,8 @@ func serviceinspect(servicename string) {
 	var found bool = false
 	var id string = ""
 	var name string = ""
+	var publishedport = ""
+	var m Message
 
 	for _, service := range srvlist {
 		if service.Spec.Name == servicename {
@@ -103,7 +106,7 @@ func serviceinspect(servicename string) {
 		fmt.Print("error")
 	}
 
-	fmt.Println(srvinspect.Endpoint.Ports[0].PublishedPort)
+	publishedport = fmt.Sprint(srvinspect.Endpoint.Ports[0].PublishedPort)
 
 	ndlist, err := cli.NodeList(ctx, types.NodeListOptions{})
 
@@ -111,9 +114,15 @@ func serviceinspect(servicename string) {
 		fmt.Print("error")
 	}
 
+	// add nodes to message
 	for _, node := range ndlist {
-		fmt.Println(node.Description.Hostname)
+		nodename := node.Description.Hostname
+		m.Aslice = append(m.Aslice, nodename+" "+publishedport)
 	}
+
+	m.Acode = 100
+	b, _ := json.Marshal(m)
+	return string(b)
 
 }
 
@@ -128,5 +137,5 @@ func main() {
 
 	// init webserver
 	http.HandleFunc("/", handler)
-	http.ListenAndServe(":6666", nil)
+	http.ListenAndServe(":8080", nil)
 }
