@@ -2,69 +2,80 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
-	//"path"
 	"strings"
 
-	"golang.org/x/net/context"
-
-	//"encoding/json"
-
 	"github.com/docker/docker/api/types"
-	//"github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/client"
+	"golang.org/x/net/context"
 )
 
 var ctx context.Context
 var cli *client.Client
 
+type Message struct {
+	Acode   int64
+	Astring string
+	Aslice  []string
+}
+
+func stringInSlice(a string, list []string) bool {
+	for _, b := range list {
+		if b == a {
+			return true
+		}
+	}
+	return false
+}
+
 func handler(w http.ResponseWriter, r *http.Request) {
 
-	// TODO check if r.URL.Path is path!
-
 	// split the path on /
-	urlpath := strings.Split(r.URL.Path, "/")
+	// strips off first /
 
-	fmt.Println(urlpath[2])
-	switch urlpath[1] {
-	case "service":
-		servicecallhandler(urlpath[2], urlpath[3])
-	default:
-		fmt.Fprintf(w, "not a valid call")
+	urlpath := strings.Split(r.URL.Path[1:], "/")
+
+	if stringInSlice("service", urlpath) {
+		if stringInSlice("list", urlpath) {
+			resp := servicelist()
+			fmt.Fprintf(w, resp)
+		} else if stringInSlice("inspect", urlpath) {
+			serviceinspect(urlpath[2])
+		}
+	} else {
+		http.Error(w, "Not a valid command call", http.StatusBadRequest)
 	}
 
 }
 
-func servicecallhandler(command string, arg string) {
+func servicelist() (response string) {
 
-	switch command {
-	case "list":
-		servicelist()
-	case "inspect":
-		serviceinspect(arg)
-	default:
-		fmt.Println("commant of list not known or implemented")
-	}
+	var m Message
 
-}
-
-func servicelist() {
 	servicelist, err := cli.ServiceList(ctx, types.ServiceListOptions{})
 	if err != nil {
-		fmt.Print("error")
+		m.Acode = 500
+		b, _ := json.Marshal(m)
+		return string(b)
 	}
 
 	for _, service := range servicelist {
 		fmt.Println(service.ID)
 		fmt.Println(service.Spec.Name)
 	}
+
+	m.Acode = 500
+	b, _ := json.Marshal(m)
+	return string(b)
 }
 
 func serviceinspect(servicename string) {
 	srvlist, err := cli.ServiceList(ctx, types.ServiceListOptions{})
 	if err != nil {
-		fmt.Print("error")
+		fmt.Print("Not a stack manager error")
+		return
 	}
 
 	var found bool = false
@@ -83,7 +94,7 @@ func serviceinspect(servicename string) {
 		fmt.Println(id)
 		fmt.Println(name)
 	} else {
-		fmt.Println("service not found")
+		fmt.Println("Service not found Error")
 		return
 	}
 
@@ -117,5 +128,5 @@ func main() {
 
 	// init webserver
 	http.HandleFunc("/", handler)
-	http.ListenAndServe(":8080", nil)
+	http.ListenAndServe(":6666", nil)
 }
