@@ -1,0 +1,21 @@
+version: "3"
+
+services:
+
+  app:
+    image: n0r1skcom/echo
+    ports:
+      - "3333"
+    networks:
+      - net
+    deploy:
+      restart_policy:
+        condition: any
+      mode: replicated
+      replicas: 1
+      update_config:
+        delay: 2s
+
+networks:
+  net:
+    driver: overlay
