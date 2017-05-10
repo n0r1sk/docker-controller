@@ -2,7 +2,7 @@ version: "3"
 
 services:
 
-  app:
+  lb:
     image: n0r1skcom/echo
     ports:
       - "3333"
