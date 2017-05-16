@@ -4,6 +4,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 
@@ -75,7 +76,8 @@ func servicelist() string {
 func serviceinspect(servicename string) (response string) {
 	srvlist, err := cli.ServiceList(ctx, types.ServiceListOptions{})
 	if err != nil {
-		fmt.Print("Not a stack manager error")
+		log.Print("Not a stack manager error")
+		log.Print(err)
 		return
 	}
 
@@ -97,13 +99,16 @@ func serviceinspect(servicename string) (response string) {
 		fmt.Println(id)
 		fmt.Println(name)
 	} else {
-		fmt.Println("Service not found Error")
-		return
+		log.Print("Service not found")
+		m.Acode = 500
+		m.Astring = "Service not found"
+		b, _ := json.Marshal(m)
+		return string(b)
 	}
 
 	srvinspect, _, err := cli.ServiceInspectWithRaw(ctx, id, types.ServiceInspectOptions{})
 	if err != nil {
-		fmt.Print("error")
+		log.Print(err)
 	}
 
 	publishedport = fmt.Sprint(srvinspect.Endpoint.Ports[0].PublishedPort)
@@ -111,7 +116,7 @@ func serviceinspect(servicename string) (response string) {
 	ndlist, err := cli.NodeList(ctx, types.NodeListOptions{})
 
 	if err != nil {
-		fmt.Print("error")
+		log.Print(err)
 	}
 
 	// add nodes to message
@@ -127,15 +132,19 @@ func serviceinspect(servicename string) (response string) {
 }
 
 func main() {
+
 	// init global docker client
 	ctx = context.Background()
 	var err error
 	cli, err = client.NewEnvClient()
 	if err != nil {
-		panic(err)
+		log.Panic(err)
 	}
 
 	// init webserver
 	http.HandleFunc("/", handler)
-	http.ListenAndServe(":8080", nil)
+	err = http.ListenAndServe(":8080", nil)
+	if err != nil {
+		log.Panic(err)
+	}
 }
