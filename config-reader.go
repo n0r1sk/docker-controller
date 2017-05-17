@@ -24,20 +24,20 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-type T struct {
+type Tcfg struct {
 	General struct {
 		Api_key string
 	}
 }
 
-func ReadConfigfile() (config T, ok bool) {
+func ReadConfigfile() (config Tcfg, ok bool) {
 	cfgdata, err := ioutil.ReadFile("/config/docker-controller.yml")
 
 	if err != nil {
 		log.Panic("Cannot open config file from /config/docker-controller.yml")
 	}
 
-	t := T{}
+	t := Tcfg{}
 
 	err = yaml.Unmarshal([]byte(cfgdata), &t)
 	if err != nil {

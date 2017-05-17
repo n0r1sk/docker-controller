@@ -15,6 +15,7 @@ import (
 
 var ctx context.Context
 var cli *client.Client
+var config Tcfg
 
 type Message struct {
 	Acode   int64
@@ -31,12 +32,40 @@ func stringInSlice(a string, list []string) bool {
 	return false
 }
 
+func ResponseHelper(code int64, message string, payload []string) (resp string) {
+	log.Print(message)
+	var m Message
+	m.Acode = code
+	m.Astring = message
+	m.Aslice = payload
+	b, _ := json.Marshal(m)
+	return string(b)
+}
+
 func handler(w http.ResponseWriter, r *http.Request) {
 
 	// split the path on /
 	// strips off first /
 
 	urlpath := strings.Split(r.URL.Path[1:], "/")
+	parameters := r.URL.Query()
+
+	if len(parameters) < 1 {
+		fmt.Fprintf(w, ResponseHelper(501, "No url parameters given.", nil))
+		return
+	}
+
+	api_key, ok := parameters["api_key"]
+
+	if !ok {
+		fmt.Fprintf(w, ResponseHelper(501, "No api_key parameter given!", nil))
+		return
+	}
+
+	if api_key[0] != config.General.Api_key {
+		fmt.Fprintf(w, ResponseHelper(501, "api_keys between server and client not equal!", nil))
+		return
+	}
 
 	if stringInSlice("service", urlpath) {
 		if stringInSlice("list", urlpath) {
@@ -132,6 +161,9 @@ func serviceinspect(servicename string) (response string) {
 }
 
 func main() {
+
+	// read config
+	config, _ = ReadConfigfile()
 
 	// init global docker client
 	ctx = context.Background()
