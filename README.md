@@ -1,2 +1,3 @@
 # Docker Controller
-Used to access some Docker swarm informations without exposing too much power.
+
+[This project has been moved to GitLab! - See you there!](https://gitlab.com/n0r1sk/docker-controller)
